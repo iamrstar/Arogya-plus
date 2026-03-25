@@ -140,7 +140,7 @@ export default function DoctorDashboard() {
       let todayAppointments = []
       try {
         const appRes = await fetch("/api/appointments", {
-          headers: { "Authorization": `Bearer ${sessionStorage.getItem("token") || ''}` }
+          headers: { "Authorization": `Bearer ${localStorage.getItem("token") || ''}` }
         })
         const appData = await appRes.json()
         todayAppointments = appData.filter(a => a.date === today)

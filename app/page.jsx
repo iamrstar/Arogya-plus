@@ -103,14 +103,14 @@ export default function HomePage() {
                 <span className="text-xs font-bold uppercase tracking-wider">India's Trusted Medical Network</span>
               </div>
 
-              <h1 className="text-5xl lg:text-7xl font-black text-slate-900 leading-[1.1] tracking-tight">
+              <h1 className="text-5xl lg:text-7xl font-black text-foreground leading-[1.1] tracking-tight">
                 Healthcare that <br />
                 <span className="text-primary italic">Understands </span> You.
               </h1>
 
-              <p className="text-lg text-slate-500 max-w-xl leading-relaxed font-medium">
+              <p className="text-lg text-muted-foreground max-w-xl leading-relaxed font-medium">
                 Experience world-class medical care with Arogya 2.0. Connecting
-                <span className="text-slate-900 font-bold"> thousands of Indian specialists </span>
+                <span className="text-foreground font-bold"> thousands of Indian specialists </span>
                 with patients across the nation.
               </p>
 
@@ -135,14 +135,14 @@ export default function HomePage() {
             <div className="w-full md:w-[450px] relative">
               <div className="absolute inset-0 bg-primary/5 blur-[100px] -z-10 rounded-full" />
 
-              <div className="bg-white rounded-[2.5rem] p-8 shadow-[0_32px_64px_-16px_rgba(13,148,136,0.15)] border border-slate-100 relative overflow-hidden group">
+              <div className="bg-card rounded-[2.5rem] p-8 shadow-[0_32px_64px_-16px_rgba(13,148,136,0.15)] border border-border relative overflow-hidden group">
                 {/* Subtle Indian Pattern Overlay */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full opacity-50 transition-transform group-hover:scale-110" />
 
                 <div className="relative z-10 space-y-6">
                   <div className="space-y-1">
-                    <h2 className="text-2xl font-black text-slate-900">Patient Portal</h2>
-                    <p className="text-sm text-slate-500 font-medium">Access your digital health universe</p>
+                    <h2 className="text-2xl font-black text-foreground">Patient Portal</h2>
+                    <p className="text-sm text-muted-foreground font-medium">Access your digital health universe</p>
                   </div>
 
                   <form onSubmit={handleLogin} className="space-y-5">
@@ -165,13 +165,13 @@ export default function HomePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Universal Email</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Universal Email</Label>
                       <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                           type="email"
                           placeholder="name@healthcare.in"
-                          className="h-14 pl-12 rounded-2xl border-slate-100 bg-slate-50/50 focus:ring-primary/20 font-medium"
+                          className="h-14 pl-12 rounded-2xl border-border bg-muted/30 focus:ring-primary/20 font-medium text-foreground"
                           value={loginData.email}
                           onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                           required
@@ -181,17 +181,17 @@ export default function HomePage() {
 
                     <div className="space-y-2">
                       <div className="flex items-center justify-between ml-1">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Secure Pin</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Secure Pin</Label>
                         <Link href="/forgot-password" size="sm" className="text-[10px] font-black text-primary uppercase tracking-wider hover:underline">
                           Lost Access?
                         </Link>
                       </div>
                       <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                           type={showPassword ? "text" : "password"}
                           placeholder="••••••••"
-                          className="h-14 pl-12 pr-12 rounded-2xl border-slate-100 bg-slate-50/50 focus:ring-primary/20"
+                          className="h-14 pl-12 pr-12 rounded-2xl border-border bg-muted/30 focus:ring-primary/20 text-foreground"
                           value={loginData.password}
                           onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                           required
@@ -199,7 +199,7 @@ export default function HomePage() {
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
                         >
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>

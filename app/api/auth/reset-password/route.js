@@ -11,9 +11,10 @@ export async function POST(request) {
             return NextResponse.json({ error: "Email, OTP and new password are required" }, { status: 400 })
         }
 
-        // 1. Verify OTP
-        const isOtpValid = await verifyOTP(email, otp)
+        // 1. Verify OTP (don't delete yet)
+        const isOtpValid = await verifyOTP(email, otp, false)
         if (!isOtpValid) {
+            console.log(`[AA] OTP validation failed for ${email}`)
             return NextResponse.json({ error: "Invalid or expired OTP" }, { status: 400 })
         }
 
@@ -23,8 +24,14 @@ export async function POST(request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 })
         }
 
-        // 3. Update password (in a real app, hash it)
-        await updatePassword(email, newPassword)
+        // 3. Update password
+        const updated = await updatePassword(email, newPassword)
+        if (!updated) {
+            return NextResponse.json({ error: "Failed to update password" }, { status: 500 })
+        }
+
+        // 4. Now that everything succeeded, consume the OTP
+        await verifyOTP(email, otp, true)
 
         return NextResponse.json({ message: "Password reset successful" })
     } catch (error) {

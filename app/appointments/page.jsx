@@ -23,7 +23,12 @@ export default function AppointmentsPage() {
 
   const fetchAppointments = async () => {
     try {
-      const response = await fetch("/api/appointments")
+      const token = localStorage.getItem("token")
+      const response = await fetch("/api/appointments", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
       const data = await response.json()
       setAppointments(data)
     } catch (error) {
