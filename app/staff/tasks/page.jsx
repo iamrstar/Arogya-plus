@@ -52,76 +52,60 @@ export default function StaffTasks() {
   }, [])
 
   const fetchTasks = async () => {
-    // Mock data based on staff role - replace with actual API call
-    const mockTasks = [
-      {
-        id: "T001",
-        type: "Medication",
-        patient: "Rahul Verma",
-        patientId: "PAT001",
-        description: "Administer morning medications - Amlodipine 5mg",
-        time: "09:00 AM",
-        date: "2024-01-15",
-        status: "Pending",
-        priority: "High",
-        assignedBy: "Dr. Rajesh Kumar",
-        room: "301-A",
-      },
-      {
-        id: "T002",
-        type: "Vital Signs",
-        patient: "Sunita Singh",
-        patientId: "PAT002",
-        description: "Check and record vital signs - BP, Pulse, Temperature",
-        time: "10:30 AM",
-        date: "2024-01-15",
-        status: "Completed",
-        priority: "Normal",
-        assignedBy: "Dr. Priya Sharma",
-        room: "302-B",
-      },
-      {
-        id: "T003",
-        type: "Wound Care",
-        patient: "Amit Kumar",
-        patientId: "PAT003",
-        description: "Change surgical dressing and assess healing",
-        time: "02:00 PM",
-        date: "2024-01-15",
-        status: "In Progress",
-        priority: "High",
-        assignedBy: "Dr. Rajesh Kumar",
-        room: "303-A",
-      },
-      {
-        id: "T004",
-        type: "Lab Sample",
-        patient: "Priya Patel",
-        patientId: "PAT004",
-        description: "Collect blood sample for CBC and lipid profile",
-        time: "11:00 AM",
-        date: "2024-01-15",
-        status: "Pending",
-        priority: "Normal",
-        assignedBy: "Dr. Amit Patel",
-        room: "304-A",
-      },
-      {
-        id: "T005",
-        type: "Patient Education",
-        patient: "Ravi Sharma",
-        patientId: "PAT005",
-        description: "Diabetes management education and diet counseling",
-        time: "03:30 PM",
-        date: "2024-01-15",
-        status: "Pending",
-        priority: "Normal",
-        assignedBy: "Dr. Priya Sharma",
-        room: "305-B",
-      },
-    ]
+    try {
+      setLoading(true)
+      // 1. Fetch Admin/Administrative Tasks if role allows
+      const staffRes = await fetch(`/api/staff/tasks?role=${user?.role}&staffId=${user?.userId}`)
+      const staffTasks = await staffRes.json()
 
-    setTasks(mockTasks)
+      // 2. If Nurse, fetch Admitted Patients to get Medication Protocols
+      let clinicalTasks = []
+      if (user?.role?.toLowerCase() === "nurse") {
+        const patientRes = await fetch("/api/admin/admitted")
+        const patients = await patientRes.json()
+
+        patients.forEach(p => {
+          // FILTER: Only show patients in the nurse's department
+          if (p.department !== user?.department) return
+
+          if (p.dailyMedicationPlan && Array.isArray(p.dailyMedicationPlan)) {
+            p.dailyMedicationPlan.forEach(plan => {
+              // Convert plan to task format
+              clinicalTasks.push({
+                _id: plan._id,
+                id: plan._id,
+                type: "Medication",
+                patient: p.name,
+                patientId: p._id,
+                description: `${plan.medicineName} - ${plan.dosage} (${plan.instructions})`,
+                medicineId: plan.medicineId,
+                time: plan.shift,
+                date: new Date().toISOString().split('T')[0],
+                status: (plan.status === "completed" || plan.status === "administered") ? "Completed" : "Pending",
+                priority: "High",
+                assignedBy: "Doctor",
+                room: p.bed,
+                isClinical: true
+              })
+            })
+          }
+        })
+      }
+
+      // 3. Filter Administrative Tasks by department if applicable
+      const filteredStaffTasks = staffTasks.filter(t => {
+        if (!user?.department) return true
+        if (t.type === "Shifting" && t.to) {
+          return t.to.toLowerCase().includes(user.department.toLowerCase()) || t.patientName
+        }
+        return true
+      })
+
+      const allTasks = [...filteredStaffTasks, ...clinicalTasks]
+      setTasks(allTasks)
+    } catch (e) {
+      console.error("Error fetching tasks:", e)
+    }
     setLoading(false)
   }
 
@@ -145,8 +129,28 @@ export default function StaffTasks() {
     })
   }
 
-  const handleStatusChange = (taskId, newStatus) => {
-    setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: newStatus } : task)))
+  const handleStatusChange = async (taskId, newStatus, isClinical, patientId, medicineId) => {
+    if (isClinical) {
+      // Clinical tasks need to be updated via patient protocol API
+      try {
+        const res = await fetch("/api/admin/admitted", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ patientId, planItemId: taskId, action: "medicate", medicineId, quantity: 1 })
+        })
+        if (res.ok) fetchTasks()
+      } catch (e) { console.error(e) }
+    } else {
+      // Staff tasks updated via staff tasks API
+      try {
+        const res = await fetch("/api/staff/tasks", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId, action: newStatus === "Completed" ? "complete" : "accept" })
+        })
+        if (res.ok) fetchTasks()
+      } catch (e) { console.error(e) }
+    }
   }
 
   const getStatusColor = (status) => {
@@ -402,22 +406,24 @@ export default function StaffTasks() {
                       <div className="flex space-x-2 mt-2">
                         {task.status === "Pending" && (
                           <>
-                            <Button size="sm" onClick={() => handleStatusChange(task.id, "In Progress")}>
-                              Start
+                            <Button size="sm" onClick={() => handleStatusChange(task.id, "In Progress", task.isClinical, task.patientId, task.medicineId)}>
+                              {task.isClinical ? "Mark as Given" : "Start"}
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleStatusChange(task.id, "Completed")}
-                            >
-                              Complete
-                            </Button>
+                            {!task.isClinical && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleStatusChange(task.id, "Completed", task.isClinical, task.patientId, task.medicineId)}
+                              >
+                                Complete
+                              </Button>
+                            )}
                           </>
                         )}
                         {task.status === "In Progress" && (
-                          <Button size="sm" onClick={() => handleStatusChange(task.id, "Completed")}>
+                          <Button size="sm" onClick={() => handleStatusChange(task.id, "Completed", task.isClinical, task.patientId, task.medicineId)}>
                             <CheckCircle className="h-4 w-4 mr-1" />
-                            Complete
+                            {task.isClinical ? "Confirm Given" : "Complete"}
                           </Button>
                         )}
                       </div>

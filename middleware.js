@@ -21,7 +21,7 @@ export function middleware(request) {
   const token = request.cookies.get("token")?.value || request.headers.get("authorization")?.replace("Bearer ", "")
 
   // Public routes that don't require authentication
-  const publicRoutes = ["/", "/api/auth/login", "/api/auth/register", "/register"]
+  const publicRoutes = ["/", "/api/auth/login", "/api/auth/register", "/register", "/api/chat"]
   const isPublicRoute = publicRoutes.some((route) => request.nextUrl.pathname.startsWith(route))
 
   if (isPublicRoute) {

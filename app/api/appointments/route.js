@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { getAppointmentsByPatient, getAppointmentsByDoctor, createAppointment } from "@/lib/mongodb-models"
 import { verifyToken } from "@/lib/auth"
+import { sendAppointmentEmail } from "@/lib/mail-utils"
 
 export async function GET(request) {
   try {
@@ -10,9 +11,11 @@ export async function GET(request) {
     const user = verifyToken(token)
 
     let appointments = []
-    if (user.role === "patient") {
+    const userRole = user.userType || user.role
+
+    if (userRole === "patient") {
       appointments = await getAppointmentsByPatient(user.userId)
-    } else if (user.role === "doctor") {
+    } else if (userRole === "doctor") {
       appointments = await getAppointmentsByDoctor(user.userId)
     }
 
@@ -30,12 +33,25 @@ export async function POST(request) {
     const user = verifyToken(token)
 
     const data = await request.json()
-    const result = await createAppointment({
+    const appointmentData = {
       ...data,
       patientId: user.userId,
+      patientName: user.name,
       status: "scheduled",
       appointmentDate: new Date(data.appointmentDate),
-    })
+    }
+
+    const result = await createAppointment(appointmentData)
+
+    // Send confirmation email
+    if (user.email) {
+      await sendAppointmentEmail(user.email, {
+        patientName: user.name || "Patient",
+        doctorName: data.doctorName || "Doctor",
+        appointmentDate: appointmentData.appointmentDate,
+        department: data.department || "General",
+      })
+    }
 
     return NextResponse.json(result, { status: 201 })
   } catch (error) {

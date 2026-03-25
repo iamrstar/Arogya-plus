@@ -7,9 +7,11 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PatientLayout } from "@/components/layouts/patient-layout"
-import { Beaker, Download, Eye, Search, Filter, AlertCircle, CheckCircle } from "lucide-react"
+import { Beaker, Download, Eye, Search, Filter, AlertCircle, CheckCircle, Loader2 } from "lucide-react"
+import { useAuth } from "@/components/auth/auth-provider"
 
 export default function PatientLabReports() {
+  const { token, user } = useAuth()
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -17,49 +19,20 @@ export default function PatientLabReports() {
   const [selectedReport, setSelectedReport] = useState(null)
 
   useEffect(() => {
-    fetchLabReports()
-  }, [])
+    if (token) {
+      fetchLabReports()
+    }
+  }, [token])
 
   const fetchLabReports = async () => {
-    // Mock data - replace with actual API call
-    setReports([
-      {
-        id: "LAB001",
-        testName: "Complete Blood Count (CBC)",
-        category: "Hematology",
-        orderedBy: "Dr. Rajesh Kumar",
-        orderDate: "2024-01-10",
-        resultDate: "2024-01-12",
-        status: "Completed",
-        result: "Normal",
-        referenceRange: "WBC: 4.5-11.0 K/uL",
-        notes: "All values within normal range. No abnormalities detected.",
-      },
-      {
-        id: "LAB002",
-        testName: "Thyroid Function Test (TSH)",
-        category: "Endocrinology",
-        orderedBy: "Dr. Priya Sharma",
-        orderDate: "2024-01-15",
-        resultDate: null,
-        status: "Pending",
-        result: null,
-        referenceRange: "TSH: 0.4-4.0 mIU/L",
-        notes: null,
-      },
-      {
-        id: "LAB003",
-        testName: "Lipid Profile",
-        category: "Biochemistry",
-        orderedBy: "Dr. Rajesh Kumar",
-        orderDate: "2024-01-05",
-        resultDate: "2024-01-07",
-        status: "Completed",
-        result: "Slightly Elevated",
-        referenceRange: "Total Cholesterol: <200 mg/dL",
-        notes: "Total cholesterol slightly elevated. Recommend dietary changes and follow-up in 3 months.",
-      },
-    ])
+    try {
+      // In a real app, we'd use useAuth's patient ID. 
+      // For demo purposes, we'll fetch reports for ADM001 (Arjun Mehta)
+      const res = await fetch("/api/admin/diagnostics?patientId=ADM001")
+      setReports(await res.json())
+    } catch (e) {
+      console.error("Failed to fetch lab reports", e)
+    }
     setLoading(false)
   }
 
@@ -92,14 +65,11 @@ export default function PatientLabReports() {
     return matchesSearch && matchesFilter
   })
 
-  if (loading) {
+  if (loading && reports.length === 0) {
     return (
       <PatientLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-muted-foreground">Loading lab reports...</p>
-          </div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </PatientLayout>
     )

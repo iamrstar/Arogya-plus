@@ -28,7 +28,17 @@ export async function POST(request) {
       )
     }
 
-    const user = await findUserByEmail(email)
+    let user = await findUserByEmail(email)
+
+    // Admin seed fallback — ensure admin always exists in dev
+    if (!user && email === "admin@arogya.com") {
+      const store = await connectDB()
+      const adminUser = { _id: "ADMIN001", name: "Hospital Admin", userType: "admin", email: "admin@arogya.com", password: "Admin@123", role: "Super Admin" }
+      if (!store.users.find(u => u.email === "admin@arogya.com")) {
+        store.users.push(adminUser)
+      }
+      user = adminUser
+    }
 
     if (!user || user.password !== password) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })

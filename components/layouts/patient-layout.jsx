@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Heart, Home, Calendar, FileText, Pill, CreditCard, User, Bell, Menu, LogOut, Phone, TestTube } from 'lucide-react'
+import { Heart, Home, Calendar, FileText, Pill, CreditCard, User, Bell, Menu, LogOut, Phone, TestTube, Hospital } from 'lucide-react'
 import { useAuth } from "@/components/auth/auth-provider"
 
 export function PatientLayout({ children }) {
@@ -16,6 +16,7 @@ export function PatientLayout({ children }) {
   const navigation = [
     { name: "Dashboard", href: "/patient/dashboard", icon: Home },
     { name: "Appointments", href: "/patient/appointments", icon: Calendar },
+    { name: "Hospitals", href: "/hospitals", icon: Hospital },
     { name: "Lab Reports", href: "/patient/reports", icon: TestTube },
     { name: "Prescriptions", href: "/patient/prescriptions", icon: Pill },
     { name: "Medical Records", href: "/patient/records", icon: FileText },
@@ -46,7 +47,7 @@ export function PatientLayout({ children }) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate">{user?.name}</p>
-            <p className="text-sm text-muted-foreground truncate">Patient ID: {user?.patientId}</p>
+            <p className="text-sm text-muted-foreground truncate">Arogya ID: {user?._id}</p>
           </div>
         </div>
       </div>

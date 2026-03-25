@@ -16,17 +16,28 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Calendar, Clock, User, Plus, Search, Filter } from "lucide-react"
+import { Calendar, Clock, User, Plus, Search, Filter, AlertCircle, Loader2, ArrowRight, CheckCircle2 } from "lucide-react"
 import { PatientLayout } from "@/components/layouts/patient-layout"
+import { useAuth } from "@/components/auth/auth-provider"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { toast } from "sonner"
 
 export default function PatientAppointments() {
+  const { token, user } = useAuth()
   const [appointments, setAppointments] = useState([])
   const [doctors, setDoctors] = useState([])
   const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(null) // ID of appointment being processed
+  const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
+  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] = useState(null)
+  const [rescheduleData, setRescheduleData] = useState({ date: "", time: "" })
   const [bookingForm, setBookingForm] = useState({
     doctorId: "",
+    doctorName: "",
+    specialization: "",
     date: "",
     time: "",
     reason: "",
@@ -35,70 +46,137 @@ export default function PatientAppointments() {
   useEffect(() => {
     fetchAppointments()
     fetchDoctors()
+
+    // Clinical Refresh Listener for AI-driven booking
+    const handleClinicalRefresh = () => {
+      fetchAppointments()
+    }
+    window.addEventListener("clinical-appointment-update", handleClinicalRefresh)
+    return () => window.removeEventListener("clinical-appointment-update", handleClinicalRefresh)
   }, [])
 
   const fetchAppointments = async () => {
-    // Mock data - replace with actual API call
-    setAppointments([
-      {
-        id: "APT001",
-        doctorName: "Dr. Rajesh Kumar",
-        specialization: "Cardiology",
-        date: "2024-01-15",
-        time: "10:00 AM",
-        status: "Scheduled",
-        reason: "Regular Checkup",
-        location: "Room 301, Cardiology Wing",
-      },
-      {
-        id: "APT002",
-        doctorName: "Dr. Priya Sharma",
-        specialization: "Neurology",
-        date: "2024-01-20",
-        time: "2:30 PM",
-        status: "Completed",
-        reason: "Follow-up consultation",
-        location: "Room 205, Neurology Wing",
-      },
-      {
-        id: "APT003",
-        doctorName: "Dr. Amit Patel",
-        specialization: "Orthopedics",
-        date: "2024-01-25",
-        time: "11:15 AM",
-        status: "Scheduled",
-        reason: "Knee pain consultation",
-        location: "Room 102, Orthopedics Wing",
-      },
-    ])
-    setLoading(false)
+    try {
+      const response = await fetch("/api/appointments", {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+      const data = await response.json()
+      if (response.ok) {
+        setAppointments(data)
+      } else {
+        setError("Failed to synchronize with clinical registry")
+      }
+    } catch (err) {
+      setError("Clinical network timeout. Please retry.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const fetchDoctors = async () => {
-    // Mock data - replace with actual API call
-    setDoctors([
-      { id: "DOC001", name: "Dr. Rajesh Kumar", specialization: "Cardiology" },
-      { id: "DOC002", name: "Dr. Priya Sharma", specialization: "Neurology" },
-      { id: "DOC003", name: "Dr. Amit Patel", specialization: "Orthopedics" },
-    ])
+    try {
+      const response = await fetch("/api/doctors")
+      const data = await response.json()
+      if (response.ok) {
+        setDoctors(data)
+      }
+    } catch (err) {
+      console.error("Clinical registry sync error:", err)
+    }
   }
 
   const handleBookAppointment = async (e) => {
     e.preventDefault()
-    // Mock booking - replace with actual API call
-    const newAppointment = {
-      id: `APT${Date.now()}`,
-      doctorName: doctors.find((d) => d.id === bookingForm.doctorId)?.name,
-      specialization: doctors.find((d) => d.id === bookingForm.doctorId)?.specialization,
-      date: bookingForm.date,
-      time: bookingForm.time,
-      status: "Scheduled",
-      reason: bookingForm.reason,
-      location: "TBD",
+    setLoading(true)
+    setError("")
+
+    const doctor = doctors.find(d => d.id === bookingForm.doctorId)
+    const appointmentData = {
+      ...bookingForm,
+      doctorName: doctor?.name,
+      specialization: doctor?.specialization,
+      appointmentDate: bookingForm.date,
     }
 
-    setAppointments([...appointments, newAppointment])
-    setBookingForm({ doctorId: "", date: "", time: "", reason: "" })
+    try {
+      const response = await fetch("/api/appointments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(appointmentData),
+      })
+
+      if (response.ok) {
+        toast.success("Appointment Synchronized!")
+        fetchAppointments()
+        setBookingForm({ doctorId: "", doctorName: "", specialization: "", date: "", time: "", reason: "" })
+      } else {
+        setError("Clinical scheduling failure. Check availability.")
+      }
+    } catch (err) {
+      setError("Network interruption. Retry scheduling.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCancelAppointment = async (id) => {
+    if (!confirm("Confirm cancellation of this clinical appointment?")) return
+
+    setActionLoading(id)
+    try {
+      const response = await fetch(`/api/appointments/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: "cancelled" }),
+      })
+
+      if (response.ok) {
+        toast.success("Appointment Voided Successfully")
+        fetchAppointments()
+      } else {
+        toast.error("Vocation failure. Record is locked.")
+      }
+    } catch (err) {
+      toast.error("Clinical sync failure")
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleReschedule = async (e) => {
+    e.preventDefault()
+    setActionLoading(selectedAppointment._id)
+    try {
+      const response = await fetch(`/api/appointments/${selectedAppointment._id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          appointmentDate: rescheduleData.date,
+          time: rescheduleData.time,
+        }),
+      })
+
+      if (response.ok) {
+        toast.success("Arogya ID: Schedule Adjusted")
+        setIsRescheduleOpen(false)
+        fetchAppointments()
+      } else {
+        toast.error("Reschedule failed. Clinical conflict.")
+      }
+    } catch (err) {
+      toast.error("Clinical bridge interrupted")
+    } finally {
+      setActionLoading(null)
+    }
   }
 
   const getStatusColor = (status) => {
@@ -230,6 +308,13 @@ export default function PatientAppointments() {
           </Dialog>
         </div>
 
+        {error && (
+          <Alert variant="destructive" className="rounded-2xl bg-red-50/50 border-red-100 animate-in fade-in slide-in-from-top-2">
+            <AlertCircle className="w-4 h-4" />
+            <AlertDescription className="font-bold text-xs">{error}</AlertDescription>
+          </Alert>
+        )}
+
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
@@ -295,13 +380,27 @@ export default function PatientAppointments() {
                         <span className="text-sm font-medium">{appointment.time}</span>
                       </div>
                       <Badge className={getStatusColor(appointment.status)}>{appointment.status}</Badge>
-                      {appointment.status === "Scheduled" && (
+                      {appointment.status.toLowerCase() === "scheduled" && (
                         <div className="flex space-x-2 mt-2">
-                          <Button size="sm" variant="outline">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedAppointment(appointment)
+                              setRescheduleData({ date: appointment.date, time: appointment.time })
+                              setIsRescheduleOpen(true)
+                            }}
+                            disabled={actionLoading === appointment._id}
+                          >
                             Reschedule
                           </Button>
-                          <Button size="sm" variant="outline">
-                            Cancel
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleCancelAppointment(appointment._id)}
+                            disabled={actionLoading === appointment._id}
+                          >
+                            {actionLoading === appointment._id ? <Loader2 className="w-4 h-4 animate-spin" /> : "Cancel"}
                           </Button>
                         </div>
                       )}
@@ -312,6 +411,69 @@ export default function PatientAppointments() {
             ))
           )}
         </div>
+
+        {/* Reschedule Dialog */}
+        <Dialog open={isRescheduleOpen} onOpenChange={setIsRescheduleOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Reschedule Appointment</DialogTitle>
+              <DialogDescription>
+                Adjust the clinical schedule for your visit with {selectedAppointment?.doctorName}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleReschedule} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reschedule-date">New Date</Label>
+                  <Input
+                    id="reschedule-date"
+                    type="date"
+                    value={rescheduleData.date}
+                    onChange={(e) => setRescheduleData({ ...rescheduleData, date: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reschedule-time">New Time</Label>
+                  <Select
+                    value={rescheduleData.time}
+                    onValueChange={(value) => setRescheduleData({ ...rescheduleData, time: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="09:00 AM">09:00 AM</SelectItem>
+                      <SelectItem value="10:00 AM">10:00 AM</SelectItem>
+                      <SelectItem value="11:00 AM">11:00 AM</SelectItem>
+                      <SelectItem value="02:00 PM">02:00 PM</SelectItem>
+                      <SelectItem value="03:00 PM">03:00 PM</SelectItem>
+                      <SelectItem value="04:00 PM">04:00 PM</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="pt-4 flex space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setIsRescheduleOpen(false)}
+                >
+                  Keep Existing
+                </Button>
+                <Button type="submit" className="flex-1" disabled={actionLoading === selectedAppointment?._id}>
+                  {actionLoading === selectedAppointment?._id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Confirm Reschedule"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </PatientLayout>
   )

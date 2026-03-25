@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
-import { findUserByEmail, createUser } from "@/lib/mongodb-models"
+import { findUserByEmail, createUser, verifyOTP } from "@/lib/mongodb-models"
 
 function generateId(prefix) {
   const timestamp = Date.now().toString().slice(-6)
@@ -15,10 +15,16 @@ export async function POST(request) {
     await connectDB()
 
     const data = await request.json()
-    const { userType, email, password, name, phone } = data
+    const { userType, email, password, name, phone, otp, ...additionalData } = data
 
-    if (!userType || !email || !password || !name || !phone) {
-      return NextResponse.json({ error: "Required fields missing" }, { status: 400 })
+    if (!userType || !email || !password || !name || !phone || !otp) {
+      return NextResponse.json({ error: "Required fields missing (including OTP)" }, { status: 400 })
+    }
+
+    // Verify OTP
+    const isOtpValid = await verifyOTP(email, otp)
+    if (!isOtpValid) {
+      return NextResponse.json({ error: "Invalid or expired OTP" }, { status: 400 })
     }
 
     // Check if user already exists
@@ -27,16 +33,17 @@ export async function POST(request) {
       return NextResponse.json({ error: "User already exists with this email" }, { status: 409 })
     }
 
-    // Create new user
+    // Create new user with enhanced data
     const newUser = {
-      id: generateId(userType === "doctor" ? "DOC" : userType === "patient" ? "PAT" : "STAFF"),
+      _id: generateId(userType === "doctor" ? "DOC" : userType === "patient" ? "PAT" : "STAFF"),
       name,
       email: email.toLowerCase(),
-      password,
+      password, // In a real app, hash this!
       userType: userType.toLowerCase(),
       role: data.role || userType.toLowerCase(),
       phone,
-      ...data,
+      isVerified: true,
+      ...additionalData,
     }
 
     await createUser(newUser)
@@ -46,7 +53,7 @@ export async function POST(request) {
     return NextResponse.json(
       {
         success: true,
-        message: "User registered successfully",
+        message: "User registered successfully after OTP verification",
         user: userWithoutPassword,
       },
       { status: 201 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,26 +8,73 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PatientLayout } from "@/components/layouts/patient-layout"
-import { User, Heart, AlertCircle } from "lucide-react"
+import { useAuth } from "@/components/auth/auth-provider"
+import { User, Heart, AlertCircle, Loader2 } from "lucide-react"
 
 export default function PatientProfile() {
+  const { user, token } = useAuth()
   const [profile, setProfile] = useState({
-    name: "John Doe",
-    email: "john@example.com",
-    phone: "+91-9876543210",
-    dateOfBirth: "1990-05-15",
-    gender: "Male",
-    bloodGroup: "O+",
-    address: "123 Main Street, City, State 12345",
-    emergencyContact: "Jane Doe",
-    emergencyPhone: "+91-9876543211",
-    medicalHistory: "Hypertension, Diabetes",
-    allergies: "Penicillin",
-    currentMedications: "Aspirin, Metformin",
+    name: "",
+    email: "",
+    phone: "",
+    dateOfBirth: "",
+    gender: "",
+    bloodGroup: "",
+    address: "",
+    emergencyContact: "",
+    emergencyPhone: "",
+    medicalHistory: "",
+    allergies: "",
+    currentMedications: "",
   })
 
+  const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (user) {
+      setProfile({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        dateOfBirth: user.dateOfBirth || "",
+        gender: user.gender || "Male",
+        bloodGroup: user.bloodType || user.bloodGroup || "O+",
+        address: user.address || "",
+        emergencyContact: user.emergencyContact || "",
+        emergencyPhone: user.emergencyPhone || "",
+        medicalHistory: user.medicalHistory || "",
+        allergies: user.allergies || "",
+        currentMedications: user.currentMedications || "",
+      })
+      setLoading(false)
+    }
+  }, [user])
+
+  const fetchProfile = async () => {
+    try {
+      const response = await fetch("/api/auth/profile", {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+      const data = await response.json()
+      if (response.ok) {
+        setProfile(data)
+      } else {
+        console.error("Clinical registry sync error")
+      }
+    } catch (err) {
+      console.error("Network timeout")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (token) {
+      fetchProfile()
+    }
+  }, [token])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -35,15 +82,40 @@ export default function PatientProfile() {
   }
 
   const handleSave = async () => {
+    setLoading(true)
     try {
-      // API call to save profile
-      console.log("Saving profile:", profile)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
-      setIsEditing(false)
+      const response = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(profile),
+      })
+
+      if (response.ok) {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+        setIsEditing(false)
+        toast.success("Clinical profile synchronized!")
+      } else {
+        toast.error("Profile synchronization failure")
+      }
     } catch (error) {
-      console.error("Error saving profile:", error)
+      toast.error("Network interruption during clinical sync")
+    } finally {
+      setLoading(false)
     }
+  }
+
+  if (loading && !profile.name) {
+    return (
+      <PatientLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </PatientLayout>
+    )
   }
 
   return (
@@ -137,6 +209,7 @@ export default function PatientProfile() {
                     <SelectItem value="B-">B-</SelectItem>
                     <SelectItem value="AB+">AB+</SelectItem>
                     <SelectItem value="AB-">AB-</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -236,10 +309,10 @@ export default function PatientProfile() {
         {/* Save Button */}
         {isEditing && (
           <div className="flex gap-2">
-            <Button onClick={handleSave} className="flex-1">
-              Save Changes
+            <Button onClick={handleSave} className="flex-1" disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
             </Button>
-            <Button variant="outline" onClick={() => setIsEditing(false)} className="flex-1 bg-transparent">
+            <Button variant="outline" onClick={() => setIsEditing(false)} className="flex-1 bg-transparent" disabled={loading}>
               Cancel
             </Button>
           </div>

@@ -62,6 +62,9 @@ export function AuthProvider({ children }) {
           case "doctor":
             router.push("/doctor/dashboard")
             break
+          case "admin":
+            router.push("/admin/dashboard")
+            break
           case "staff":
             router.push("/staff/dashboard")
             break
@@ -100,6 +103,23 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const sendOtp = async (email) => {
+    try {
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      return { success: false, error: "Network error. Failed to send OTP." }
+    }
+  }
+
   const logout = () => {
     setToken(null)
     setUser(null)
@@ -123,6 +143,7 @@ export function AuthProvider({ children }) {
     loading,
     login,
     register,
+    sendOtp,
     logout,
     isAuthenticated: !!token,
   }

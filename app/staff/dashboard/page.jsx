@@ -29,9 +29,69 @@ export default function StaffDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Mock data based on staff role - replace with actual API calls
-      const mockData = getRoleBasedData(user?.role)
-      setDashboardData(mockData)
+      setLoading(true)
+      // 1. Fetch Administrative Tasks
+      const staffRes = await fetch(`/api/staff/tasks?role=${user?.role}&staffId=${user?.userId}`)
+      const staffTasks = await staffRes.json()
+
+      // 2. Fetch Clinical Protocol Tasks for Nurses
+      let clinicalTasks = []
+      let assignedCount = 0
+
+      if (user?.role?.toLowerCase() === "nurse") {
+        const patientRes = await fetch("/api/admin/admitted")
+        const patients = await patientRes.json()
+
+
+        patients.forEach(p => {
+          // FILTER: Only show patients in the nurse's department
+          if (p.department !== user?.department) return
+
+          assignedCount++
+
+          if (p.dailyMedicationPlan) {
+            p.dailyMedicationPlan.forEach(plan => {
+              clinicalTasks.push({
+                _id: plan._id,
+                id: plan._id,
+                type: "Medication",
+                patient: p.name,
+                patientId: p._id,
+                description: `${plan.medicineName} - ${plan.dosage}`,
+                medicineId: plan.medicineId,
+                time: plan.shift,
+                status: (plan.status === "completed" || plan.status === "administered") ? "Completed" : "Pending",
+                priority: "High",
+                isClinical: true
+              })
+            })
+          }
+        })
+      }
+
+      // 3. Filter Administrative Tasks by department if applicable
+      const filteredStaffTasks = staffTasks.filter(t => {
+        if (!user?.department) return true
+        // If task is shifting, check if destination ward matches department
+        if (t.type === "Shifting" && t.to) {
+          return t.to.toLowerCase().includes(user.department.toLowerCase()) ||
+            t.patientName // fallback
+        }
+        return true
+      })
+
+      const allTasks = [...filteredStaffTasks, ...clinicalTasks]
+
+      setDashboardData({
+        tasks: allTasks,
+        patients: [], // Can be filled if specific assignments exist
+        stats: {
+          totalTasks: allTasks.length,
+          completedToday: allTasks.filter(t => t.status === "Completed").length,
+          pendingTasks: allTasks.filter(t => t.status === "Pending").length,
+          assignedPatients: assignedCount,
+        }
+      })
       setLoading(false)
     } catch (error) {
       console.error("Error fetching dashboard data:", error)
@@ -212,6 +272,12 @@ export default function StaffDashboard() {
           ],
         }
 
+      case "ward boy":
+        return {
+          ...baseData,
+          tasks: [], // Fetched from API
+          patients: [],
+        }
       default:
         return {
           ...baseData,
@@ -284,6 +350,26 @@ export default function StaffDashboard() {
       default:
         return <Users className="h-8 w-8 text-primary" />
     }
+  }
+
+  const handleTaskAction = async (taskId, action, isClinical, patientId, medicineId) => {
+    try {
+      if (isClinical) {
+        const res = await fetch("/api/admin/admitted", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ patientId, planItemId: taskId, action: "medicate", medicineId, quantity: 1 })
+        })
+        if (res.ok) fetchDashboardData()
+      } else {
+        const res = await fetch("/api/staff/tasks", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId, action })
+        })
+        if (res.ok) fetchDashboardData()
+      }
+    } catch (e) { console.error(e) }
   }
 
   if (loading) {
@@ -419,8 +505,13 @@ export default function StaffDashboard() {
                           <Badge className={getPriorityColor(task.priority)}>{task.priority}</Badge>
                         </div>
                         {task.status === "Pending" && (
-                          <Button size="sm" className="mt-2">
-                            Mark Complete
+                          <Button size="sm" className="mt-2" onClick={() => handleTaskAction(task.id, 'accept', task.isClinical, task.patientId, task.medicineId)}>
+                            {task.isClinical ? "Mark as Given" : "Accept Request"}
+                          </Button>
+                        )}
+                        {task.status === "In Progress" && (
+                          <Button size="sm" className="mt-2 bg-green-600 hover:bg-green-700 text-white" onClick={() => handleTaskAction(task.id, 'shifted', task.isClinical, task.patientId, task.medicineId)}>
+                            Confirm {task.isClinical ? "Given" : "Shifted"}
                           </Button>
                         )}
                       </div>
