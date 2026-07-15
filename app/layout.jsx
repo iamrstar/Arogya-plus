@@ -3,6 +3,7 @@ import { GeistMono } from "geist/font/mono"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TributeOverlay } from "@/components/ui/tribute-overlay"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 import "./globals.css"
 import { Suspense } from "react"
 
@@ -20,6 +21,7 @@ export default function RootLayout({ children }) {
         <Suspense fallback={<div>Loading...</div>}>
           <ThemeProvider>
             <AuthProvider>
+              <ThemeToggle />
               <TributeOverlay />
               {children}
               <SwasthyaAssistant />
