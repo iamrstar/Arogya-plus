@@ -373,7 +373,7 @@ export default function PatientAppointments() {
                     <div className="text-right space-y-2">
                       <div className="flex items-center space-x-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">{appointment.date}</span>
+                        <span className="text-sm font-medium">{appointment.appointmentDate ? new Date(appointment.appointmentDate).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }) : (appointment.date || 'N/A')}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
@@ -387,7 +387,10 @@ export default function PatientAppointments() {
                             variant="outline"
                             onClick={() => {
                               setSelectedAppointment(appointment)
-                              setRescheduleData({ date: appointment.date, time: appointment.time })
+                              setRescheduleData({ 
+                                date: appointment.appointmentDate ? new Date(appointment.appointmentDate).toISOString().split('T')[0] : (appointment.date || ''), 
+                                time: appointment.time 
+                              })
                               setIsRescheduleOpen(true)
                             }}
                             disabled={actionLoading === appointment._id}

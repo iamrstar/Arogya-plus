@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/components/auth/auth-provider"
 import { PatientLayout } from "@/components/layouts/patient-layout"
 import {
@@ -25,7 +27,10 @@ import {
   AlertCircle,
   Video,
   XCircle,
-  ShieldCheck
+  ShieldCheck,
+  Brain,
+  Bone,
+  Baby
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -239,62 +244,109 @@ export default function PatientDashboard() {
         )}
         {/* Appointment Booking Modal */}
         {isBookingOpen && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-md bg-slate-900/40 animate-in fade-in duration-300">
-            <Card className="w-full max-w-lg bg-white rounded-[3rem] overflow-hidden shadow-2xl border-none">
-              <CardHeader className="p-10 border-b border-slate-50 relative">
-                <button onClick={() => setIsBookingOpen(false)} className="absolute top-8 right-8 p-2 rounded-xl hover:bg-slate-50 text-slate-400 transition-colors"><XCircle className="w-6 h-6" /></button>
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6 backdrop-blur-md bg-slate-900/40 animate-in fade-in duration-300">
+            <Card className="w-full max-w-2xl bg-white rounded-[2.5rem] overflow-hidden shadow-2xl border-none flex flex-col max-h-[90vh]">
+              <CardHeader className="p-8 pb-6 border-b border-slate-50 relative shrink-0">
+                <button onClick={() => setIsBookingOpen(false)} className="absolute top-8 right-8 p-2 rounded-xl hover:bg-slate-100 text-slate-400 transition-colors"><XCircle className="w-6 h-6" /></button>
                 <CardTitle className="text-2xl font-black text-slate-900 leading-none">Book Consultation</CardTitle>
-                <CardDescription className="text-slate-500 font-medium mt-2">Specialized healthcare at your fingertips</CardDescription>
+                <CardDescription className="text-slate-500 font-medium mt-2">Specialized healthcare made simple.</CardDescription>
               </CardHeader>
-              <CardContent className="p-10 space-y-6">
-                <form onSubmit={handleBookAppointment} className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Clinical Department</label>
-                    <Select value={newAppointment.department} onValueChange={(v) => setNewAppointment({ ...newAppointment, department: v })}>
-                      <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        {['Cardiology', 'Neurology', 'Orthopedics', 'Dermatology', 'Pediatrics'].map(d => (
-                          <SelectItem key={d} value={d}>{d}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Preferred Date</label>
-                      <Input
-                        type="date"
-                        className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold"
-                        value={newAppointment.appointmentDate}
-                        onChange={(e) => setNewAppointment({ ...newAppointment, appointmentDate: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Session Type</label>
-                      <Select value={newAppointment.type} onValueChange={(v) => setNewAppointment({ ...newAppointment, type: v })}>
-                        <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="First Visit">First Visit</SelectItem>
-                          <SelectItem value="Follow-up">Regular Follow-up</SelectItem>
-                        </SelectContent>
-                      </Select>
+              <CardContent className="p-8 overflow-y-auto">
+                <form onSubmit={handleBookAppointment} className="space-y-8">
+                  
+                  {/* Step 1: Department */}
+                  <div className="space-y-3">
+                    <label className="text-xs font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px]">1</span> 
+                      Select Department
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { name: 'Cardiology', icon: <Heart className="w-6 h-6 mb-2" /> },
+                        { name: 'Neurology', icon: <Brain className="w-6 h-6 mb-2" /> },
+                        { name: 'Orthopedics', icon: <Bone className="w-6 h-6 mb-2" /> },
+                        { name: 'Pediatrics', icon: <Baby className="w-6 h-6 mb-2" /> }
+                      ].map(dept => (
+                        <button
+                          key={dept.name}
+                          type="button"
+                          onClick={() => setNewAppointment({...newAppointment, department: dept.name})}
+                          className={cn(
+                            "p-4 rounded-2xl border-2 flex flex-col items-center justify-center text-center transition-all",
+                            newAppointment.department === dept.name 
+                              ? "border-primary bg-primary/5 text-primary shadow-sm" 
+                              : "border-slate-100 hover:border-slate-200 text-slate-500 hover:bg-slate-50"
+                          )}
+                        >
+                          {dept.icon}
+                          <span className="text-[11px] font-bold uppercase tracking-wider">{dept.name}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Symptoms/Reason</label>
+
+                  {/* Step 2: Date & Session */}
+                  <div className="space-y-3">
+                    <label className="text-xs font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px]">2</span> 
+                      When & What
+                    </label>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Preferred Date</label>
+                        <Input
+                          type="date"
+                          className="h-12 rounded-xl bg-white border-slate-200 font-bold shadow-sm"
+                          value={newAppointment.appointmentDate}
+                          onChange={(e) => setNewAppointment({ ...newAppointment, appointmentDate: e.target.value })}
+                        />
+                      </div>
+                      
+                      <div className="flex gap-2">
+                         <button
+                          type="button"
+                          onClick={() => setNewAppointment({...newAppointment, type: 'First Visit'})}
+                          className={cn(
+                            "flex-1 p-4 rounded-2xl border-2 text-left transition-all",
+                            newAppointment.type === "First Visit" ? "border-primary bg-primary/5 shadow-sm" : "border-slate-100 hover:border-slate-200"
+                          )}
+                         >
+                           <p className="font-bold text-slate-900 text-sm">First Visit</p>
+                           <p className="text-[10px] text-slate-500 font-medium mt-1">New</p>
+                         </button>
+                         <button
+                          type="button"
+                          onClick={() => setNewAppointment({...newAppointment, type: 'Follow-up'})}
+                          className={cn(
+                            "flex-1 p-4 rounded-2xl border-2 text-left transition-all",
+                            newAppointment.type === "Follow-up" ? "border-primary bg-primary/5 shadow-sm" : "border-slate-100 hover:border-slate-200"
+                          )}
+                         >
+                           <p className="font-bold text-slate-900 text-sm">Follow-up</p>
+                           <p className="text-[10px] text-slate-500 font-medium mt-1">Checkup</p>
+                         </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 3: Reason */}
+                  <div className="space-y-3">
+                    <label className="text-xs font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px]">3</span> 
+                      Brief Reason
+                    </label>
                     <Input
-                      placeholder="Briefly describe your concern"
-                      className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold"
+                      placeholder="E.g., Mild chest pain, routine checkup, fever..."
+                      className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-5 focus-visible:ring-primary/20 focus-visible:bg-white transition-all shadow-sm"
                       value={newAppointment.reason}
                       onChange={(e) => setNewAppointment({ ...newAppointment, reason: e.target.value })}
+                      required
                     />
                   </div>
-                  <Button type="submit" className="w-full h-16 rounded-2xl bg-primary font-black text-lg shadow-xl shadow-primary/20">
-                    Confirm Clinical Request
+
+                  <Button type="submit" className="w-full h-16 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-lg shadow-[0_20px_40px_-12px_rgba(13,148,136,0.3)] transition-all active:scale-95 flex items-center justify-center gap-3">
+                    <Calendar className="w-5 h-5" />
+                    Confirm Appointment
                   </Button>
                 </form>
               </CardContent>

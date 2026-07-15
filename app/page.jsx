@@ -27,8 +27,14 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function HomePage() {
-  const { login } = useAuth()
+  const { login, isAuthenticated, userType: authUserType } = useAuth()
   const router = useRouter()
+  
+  useEffect(() => {
+    if (isAuthenticated && authUserType) {
+      router.push(`/${authUserType}/dashboard`)
+    }
+  }, [isAuthenticated, authUserType, router])
   const [loginData, setLoginData] = useState({
     email: "",
     password: "",
@@ -159,6 +165,7 @@ export default function HomePage() {
                           <SelectItem value="patient" className="rounded-xl">Patient Account</SelectItem>
                           <SelectItem value="doctor" className="rounded-xl">Medical Professional</SelectItem>
                           <SelectItem value="staff" className="rounded-xl">Hospital Staff</SelectItem>
+                          <SelectItem value="emergency" className="rounded-xl text-red-600 font-bold">Emergency Dispatch</SelectItem>
                           <SelectItem value="admin" className="rounded-xl">Administrator</SelectItem>
                         </SelectContent>
                       </Select>

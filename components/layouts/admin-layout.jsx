@@ -5,9 +5,11 @@ import Link from "next/link"
 import { usePathname } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Heart, LayoutDashboard, BedDouble, Users, Pill, Calendar, Scissors, UserCheck, Menu, LogOut, ShieldCheck } from 'lucide-react'
+import { Heart, LayoutDashboard, BedDouble, Users, Pill, Calendar, Scissors, UserCheck, Menu, LogOut, ShieldCheck, HeartPulse } from 'lucide-react'
+import { useAuth } from "@/components/auth/auth-provider"
 
 export function AdminLayout({ children }) {
+    const { logout } = useAuth()
     const pathname = usePathname()
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -18,6 +20,9 @@ export function AdminLayout({ children }) {
         { name: "OT Schedule", href: "/admin/ot-schedule", icon: Scissors },
         { name: "Staff Management", href: "/admin/staff", icon: Users },
         { name: "Medicine Inventory", href: "/admin/medical", icon: Pill },
+        { name: "Blood Bank", href: "/admin/blood-bank", icon: LayoutDashboard },
+        { name: "Organ Registry", href: "/admin/organs", icon: HeartPulse },
+        { name: "Patient Billing", href: "/admin/billing", icon: LayoutDashboard },
     ]
 
     const isActive = (href) => pathname === href
@@ -65,12 +70,10 @@ export function AdminLayout({ children }) {
             </nav>
 
             <div className="p-4 border-t border-border">
-                <Link href="/">
-                    <Button variant="outline" className="w-full bg-transparent">
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Exit Admin
-                    </Button>
-                </Link>
+                <Button variant="outline" className="w-full bg-transparent" onClick={logout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Exit Admin
+                </Button>
             </div>
         </div>
     )

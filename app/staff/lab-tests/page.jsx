@@ -32,7 +32,7 @@ export default function LabTechnicianDashboard() {
     const [tasks, setTasks] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+    const [selectedDate, setSelectedDate] = useState("")
     const [activeStatus, setActiveStatus] = useState("Pending")
     const [selectedTask, setSelectedTask] = useState(null)
     const [reporting, setReporting] = useState(false)
@@ -51,7 +51,7 @@ export default function LabTechnicianDashboard() {
     const fetchTasks = async () => {
         try {
             setLoading(true)
-            const res = await fetch(`/api/lab/tasks?date=${selectedDate}&status=${activeStatus}`, {
+            const res = await fetch(`/api/lab/tasks?date=${selectedDate || "all"}&status=${activeStatus}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
             const data = await res.json()
@@ -233,7 +233,7 @@ export default function LabTechnicianDashboard() {
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Received</span>
-                                            <span className="text-[10px] font-bold text-slate-600">{new Date(task.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                            <span className="text-[10px] font-bold text-slate-600">{new Date(task.createdAt || task.orderDate || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                         </div>
                                     </div>
 

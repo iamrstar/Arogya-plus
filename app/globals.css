@@ -107,3 +107,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Touch Device Optimizations */
+button, 
+[role="button"],
+a {
+  touch-action: manipulation;
+  cursor: pointer;
+}

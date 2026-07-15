@@ -5,18 +5,44 @@ import Link from "next/link"
 import { usePathname } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Heart, Home, Calendar, Users, FileText, TestTube, Pill, Activity, Settings, Bell, Menu, LogOut, Phone, Stethoscope } from 'lucide-react'
+import { Heart, Home, Calendar, Users, FileText, TestTube, Pill, Activity, Settings, Bell, Menu, LogOut, Phone, Stethoscope, Video } from 'lucide-react'
 import { useAuth } from "@/components/auth/auth-provider"
+import { toast } from "sonner"
 
 export function DoctorLayout({ children }) {
   const { user, logout } = useAuth()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isCallingEmergency, setIsCallingEmergency] = useState(false)
+
+  const handleEmergencyCall = async () => {
+    setIsCallingEmergency(true)
+    try {
+      const res = await fetch("/api/emergency/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caller: user?.name,
+          phone: "Internal Request",
+          location: "Doctor Dept",
+          type: "Code Blue / Emergency Assist"
+        })
+      })
+      if (res.ok) {
+        toast.success("Emergency Dispatch Notified! Help is on the way.")
+      }
+    } catch (e) {
+      toast.error("Failed to trigger emergency.")
+    } finally {
+      setIsCallingEmergency(false)
+    }
+  }
 
   const navigation = [
     { name: "Dashboard", href: "/doctor/dashboard", icon: Home },
     { name: "Appointments", href: "/doctor/appointments", icon: Calendar },
     { name: "Patients", href: "/doctor/patients", icon: Users },
+    { name: "Virtual Clinic", href: "/doctor/telemedicine", icon: Video },
     { name: "Lab Reports", href: "/doctor/reports", icon: TestTube },
     { name: "Prescriptions", href: "/doctor/prescriptions", icon: Pill },
     { name: "Medical Records", href: "/doctor/records", icon: FileText },
@@ -74,13 +100,20 @@ export function DoctorLayout({ children }) {
 
       {/* Emergency Contact */}
       <div className="p-4 border-t border-border">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-          <div className="flex items-center space-x-2 mb-2">
-            <Phone className="h-4 w-4 text-red-600" />
-            <span className="text-sm font-medium text-red-800">Emergency</span>
+        <Button 
+          variant="ghost"
+          className="w-full bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg p-3 h-auto flex flex-col items-start gap-1 justify-start transition-all duration-300"
+          onClick={handleEmergencyCall}
+          disabled={isCallingEmergency}
+        >
+          <div className="flex items-center space-x-2">
+            <Phone className={`h-4 w-4 text-red-600 ${isCallingEmergency ? 'animate-pulse' : ''}`} />
+            <span className="text-sm font-bold text-red-800">
+              {isCallingEmergency ? "Calling..." : "Emergency SOS"}
+            </span>
           </div>
-          <p className="text-sm text-red-700">Call: +91-9876543210</p>
-        </div>
+          <p className="text-xs font-bold text-red-600/70">Trigger Dispatch Team</p>
+        </Button>
       </div>
 
       {/* Logout */}

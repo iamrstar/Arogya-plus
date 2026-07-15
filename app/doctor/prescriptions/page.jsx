@@ -17,8 +17,12 @@ import {
     Clipboard,
     ChevronRight,
     Loader2,
-    Filter
+    Filter,
+    Edit3,
+    Droplets
 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { toast } from "sonner"
 
 export default function PrescriptionArchive() {
     const { token } = useAuth()
@@ -26,8 +30,12 @@ export default function PrescriptionArchive() {
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
 
-    useEffect(() => {
-        const fetchPrescriptions = async () => {
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [selectedPrescription, setSelectedPrescription] = useState(null)
+    const [editMedicines, setEditMedicines] = useState([])
+    const [editLoading, setEditLoading] = useState(false)
+
+    const fetchPrescriptions = async () => {
             try {
                 const response = await fetch("/api/doctor/prescriptions", {
                     headers: { "Authorization": `Bearer ${token}` }
@@ -43,8 +51,54 @@ export default function PrescriptionArchive() {
             }
         }
 
+    useEffect(() => {
         if (token) fetchPrescriptions()
     }, [token])
+
+    const handleEditClick = (prescription) => {
+        setSelectedPrescription(prescription)
+        setEditMedicines(prescription.medicines.map(m => ({ ...m })))
+        setIsEditModalOpen(true)
+    }
+
+    const handleSaveEdit = async () => {
+        if (!selectedPrescription) return
+        setEditLoading(true)
+        try {
+            const response = await fetch("/api/doctor/prescriptions/edit", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    sessionId: selectedPrescription.sessionId,
+                    medicines: editMedicines
+                })
+            })
+            const data = await response.json()
+            if (response.ok) {
+                toast.success("Prescription updated successfully")
+                setIsEditModalOpen(false)
+                fetchPrescriptions()
+            } else {
+                toast.error(data.error || "Failed to update prescription")
+            }
+        } catch (error) {
+            toast.error("Network error")
+        } finally {
+            setEditLoading(false)
+        }
+    }
+
+    const handleAddBloodRequest = () => {
+        setEditMedicines([...editMedicines, { 
+            name: "Blood Transfusion", 
+            dosage: "1 Unit O+", 
+            frequency: "Immediate", 
+            duration: "1 Day" 
+        }])
+    }
 
     const filtered = prescriptions.filter(p =>
         p.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -129,13 +183,23 @@ export default function PrescriptionArchive() {
                                                     <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Items</p>
                                                     <p className="text-xs font-black text-slate-500">{prescription.medicines.length} Medicines</p>
                                                 </div>
-                                                <Button
-                                                    onClick={() => window.open(`/api/doctor/prescription-pdf?appointmentId=${prescription.appointmentId}&patientId=${prescription.patientId}`, "_blank")}
-                                                    className="rounded-2xl h-14 px-8 bg-slate-900 hover:bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:shadow-primary/30 transition-all duration-300 group"
-                                                >
-                                                    <Download className="w-4 h-4 mr-2 group-hover:-translate-y-1 transition-transform" />
-                                                    Download PDF
-                                                </Button>
+                                                <div className="flex flex-col gap-2">
+                                                    <Button
+                                                        onClick={() => handleEditClick(prescription)}
+                                                        variant="outline"
+                                                        className="rounded-2xl h-10 px-8 bg-white border-slate-200 text-slate-700 hover:text-primary font-black text-[10px] uppercase tracking-[0.2em] shadow-sm transition-all duration-300 group"
+                                                    >
+                                                        <Edit3 className="w-4 h-4 mr-2" />
+                                                        Modify
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => window.open(`/api/doctor/prescription-pdf?appointmentId=${prescription.appointmentId}&patientId=${prescription.patientId}`, "_blank")}
+                                                        className="rounded-2xl h-10 px-8 bg-slate-900 hover:bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:shadow-primary/30 transition-all duration-300 group"
+                                                    >
+                                                        <Download className="w-4 h-4 mr-2 group-hover:-translate-y-1 transition-transform" />
+                                                        Download PDF
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -153,6 +217,84 @@ export default function PrescriptionArchive() {
                     </Card>
                 )}
             </div>
+
+            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-[2rem]">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black">Edit Prescription</DialogTitle>
+                        <DialogDescription>
+                            Modifying prescription for {selectedPrescription?.patientName}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        {editMedicines.map((med, idx) => (
+                            <div key={idx} className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100 relative">
+                                <div className="absolute top-4 right-4">
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="text-red-500 h-8 px-2 hover:bg-red-50 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                                        onClick={() => {
+                                            const updated = [...editMedicines]
+                                            updated.splice(idx, 1)
+                                            setEditMedicines(updated)
+                                        }}
+                                    >
+                                        Remove
+                                    </Button>
+                                </div>
+                                <Input 
+                                    placeholder="Medicine Name (e.g. Paracetamol 500mg)"
+                                    value={med.name}
+                                    onChange={(e) => {
+                                        const updated = [...editMedicines]
+                                        updated[idx].name = e.target.value
+                                        setEditMedicines(updated)
+                                    }}
+                                    className="pr-20"
+                                />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <Input 
+                                        placeholder="Dosage"
+                                        value={med.dosage}
+                                        onChange={(e) => {
+                                            const updated = [...editMedicines]
+                                            updated[idx].dosage = e.target.value
+                                            setEditMedicines(updated)
+                                        }}
+                                    />
+                                    <Input 
+                                        placeholder="Frequency"
+                                        value={med.frequency || med.instructions}
+                                        onChange={(e) => {
+                                            const updated = [...editMedicines]
+                                            updated[idx].frequency = e.target.value
+                                            updated[idx].instructions = e.target.value
+                                            setEditMedicines(updated)
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                        <div className="flex gap-4 pt-2">
+                            <Button variant="outline" className="flex-1 border-dashed rounded-xl h-12" onClick={() => setEditMedicines([...editMedicines, { name: "", dosage: "", frequency: "", duration: "" }])}>
+                                + Add Medicine
+                            </Button>
+                            <Button variant="outline" className="flex-1 border-dashed border-red-200 text-red-500 hover:bg-red-50 rounded-xl h-12" onClick={handleAddBloodRequest}>
+                                <Droplets className="w-4 h-4 mr-2" />
+                                + Blood Request
+                            </Button>
+                        </div>
+                        <Button 
+                            className="w-full bg-slate-900 hover:bg-primary text-white rounded-xl h-14 mt-4 font-black uppercase tracking-widest" 
+                            onClick={handleSaveEdit}
+                            disabled={editLoading}
+                        >
+                            {editLoading ? "Saving Changes..." : "Save Changes"}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </DoctorLayout>
     )
 }

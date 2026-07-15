@@ -19,6 +19,22 @@ export async function GET(request) {
       appointments = await getAppointmentsByDoctor(user.userId)
     }
 
+    // Normalize data so date filtering works in the Doctor Portal
+    appointments = appointments.map(app => {
+      let dateString = app.date
+      if (!dateString && app.appointmentDate) {
+        // Handle cases where appointmentDate is a string or Date object
+        const d = new Date(app.appointmentDate)
+        dateString = d.toISOString().split('T')[0]
+      }
+      return {
+        ...app,
+        date: dateString || "N/A",
+        time: app.time || "10:00 AM",
+        status: app.status ? app.status.charAt(0).toUpperCase() + app.status.slice(1) : "Scheduled"
+      }
+    })
+
     return NextResponse.json(appointments)
   } catch (error) {
     console.error("[AA] Appointments GET error:", error)

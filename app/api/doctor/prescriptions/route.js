@@ -14,11 +14,8 @@ export async function GET(req) {
         const store = await connectDB()
         const allPrescriptions = store.prescriptions || []
 
-        // Filter for this doctor
-        const doctorPrescriptions = allPrescriptions.filter(p => p.doctorId === user.userId)
-
         // Group by appointmentId / Session
-        const grouped = doctorPrescriptions.reduce((acc, p) => {
+        const grouped = allPrescriptions.reduce((acc, p) => {
             const sessionId = p.appointmentId || `LEGACY-${p.date}-${p.patientId}`
             if (!acc[sessionId]) {
                 acc[sessionId] = {

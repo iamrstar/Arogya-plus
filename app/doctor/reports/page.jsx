@@ -9,7 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DoctorLayout } from "@/components/layouts/doctor-layout"
 import { Beaker, Download, Eye, Search, Filter, CheckCircle, AlertCircle } from "lucide-react"
 
+import { useAuth } from "@/components/auth/auth-provider"
+
 export default function DoctorLabReports() {
+  const { token } = useAuth()
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -17,44 +20,26 @@ export default function DoctorLabReports() {
   const [selectedReport, setSelectedReport] = useState(null)
 
   useEffect(() => {
-    fetchLabReports()
-  }, [])
+    if (token && token !== "null") {
+      fetchLabReports()
+    }
+  }, [token])
 
   const fetchLabReports = async () => {
-    // Mock data - replace with actual API call
-    setReports([
-      {
-        id: "LAB001",
-        patientName: "John Doe",
-        testName: "Complete Blood Count (CBC)",
-        category: "Hematology",
-        orderDate: "2024-01-10",
-        resultDate: "2024-01-12",
-        status: "Completed",
-        result: "Normal",
-      },
-      {
-        id: "LAB002",
-        patientName: "Jane Smith",
-        testName: "Thyroid Function Test (TSH)",
-        category: "Endocrinology",
-        orderDate: "2024-01-15",
-        resultDate: null,
-        status: "Pending",
-        result: null,
-      },
-      {
-        id: "LAB003",
-        patientName: "Robert Johnson",
-        testName: "Lipid Profile",
-        category: "Biochemistry",
-        orderDate: "2024-01-05",
-        resultDate: "2024-01-07",
-        status: "Completed",
-        result: "Slightly Elevated",
-      },
-    ])
-    setLoading(false)
+    try {
+      const res = await fetch("/api/lab-tests", {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (res.ok) {
+        // Map _id to id if necessary, though the UI can just use _id
+        setReports(data.map(d => ({ ...d, id: d._id || d.id })))
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const getStatusIcon = (status) => {

@@ -68,6 +68,9 @@ export function AuthProvider({ children }) {
           case "staff":
             router.push("/staff/dashboard")
             break
+          case "emergency":
+            router.push("/emergency/dashboard")
+            break
           default:
             router.push("/dashboard")
         }
@@ -94,7 +97,7 @@ export function AuthProvider({ children }) {
       const data = await response.json()
 
       if (data.success) {
-        return { success: true, message: data.message }
+        return { success: true, message: data.message, user: data.user }
       } else {
         return { success: false, error: data.error }
       }

@@ -49,17 +49,18 @@ export function SwasthyaAssistant() {
         }
     }, [messages])
 
-    const handleSendMessage = async (e) => {
-        e.preventDefault()
-        if (!input.trim() || isLoading) return
+    const handleSendMessage = async (e, customText = null) => {
+        if (e) e.preventDefault()
+        const textToSend = customText !== null ? customText : input
+        if (!textToSend.trim() || isLoading) return
 
         const userMessage = {
             role: "user",
-            content: input,
+            content: textToSend,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
         setMessages(prev => [...prev, userMessage])
-        setInput("")
+        if (customText === null) setInput("")
         setIsLoading(true)
 
         try {
@@ -67,7 +68,7 @@ export function SwasthyaAssistant() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    message: input,
+                    message: textToSend,
                     history: messages,
                     language: language || "English"
                 }),
@@ -119,8 +120,8 @@ export function SwasthyaAssistant() {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
                         className={cn(
-                            "mb-4 w-[380px] md:w-[420px] transition-all duration-300 overflow-hidden rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(13,148,136,0.25)] border border-slate-100 bg-white",
-                            isMinimized ? "h-[70px]" : "h-[600px]"
+                            "mb-4 w-[380px] md:w-[420px] flex flex-col transition-all duration-300 overflow-hidden rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(13,148,136,0.25)] border border-slate-100 bg-white",
+                            isMinimized ? "h-[70px]" : "h-[650px]"
                         )}
                     >
                         {/* Assistant Header */}
@@ -155,7 +156,7 @@ export function SwasthyaAssistant() {
                                 {/* Chat Area */}
                                 <div
                                     ref={scrollRef}
-                                    className="h-[430px] overflow-y-auto p-6 space-y-6 bg-slate-50/50"
+                                    className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 min-h-[350px]"
                                 >
                                     {/* Language Selection if not set */}
                                     {!language && messages.length === 1 && (
@@ -199,6 +200,16 @@ export function SwasthyaAssistant() {
                                                             size="sm"
                                                             className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl h-10 font-bold"
                                                             onClick={async () => {
+                                                                if (!token) {
+                                                                    toast.error("Please login to book appointments.")
+                                                                    setMessages(prev => [...prev, {
+                                                                        role: "assistant",
+                                                                        content: "Please log in to your patient account first to confirm this appointment.",
+                                                                        time: "Just Now"
+                                                                    }])
+                                                                    return
+                                                                }
+
                                                                 setIsLoading(true)
                                                                 try {
                                                                     const res = await fetch("/api/appointments", {
@@ -255,7 +266,8 @@ export function SwasthyaAssistant() {
                                         <Button
                                             key={i}
                                             variant="outline"
-                                            onClick={() => setInput(action.label)}
+                                            onClick={() => handleSendMessage(null, action.label)}
+                                            disabled={isLoading}
                                             className="whitespace-nowrap h-8 rounded-full border-slate-100 bg-white text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
                                         >
                                             {action.icon}
@@ -265,7 +277,7 @@ export function SwasthyaAssistant() {
                                 </div>
 
                                 {/* Input Area */}
-                                <CardFooter className="p-6 pt-2 bg-white">
+                                <div className="p-6 pt-2 bg-white shrink-0 z-10">
                                     <form onSubmit={handleSendMessage} className="w-full relative">
                                         <Input
                                             placeholder="Ask anything about your health..."
@@ -281,7 +293,7 @@ export function SwasthyaAssistant() {
                                             <Send className="w-5 h-5" />
                                         </Button>
                                     </form>
-                                </CardFooter>
+                                </div>
                             </>
                         )}
                     </motion.div>

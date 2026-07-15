@@ -53,8 +53,7 @@ export function StaffLayout({ children }) {
       case "pharmacist":
         return [
           ...baseNav.slice(0, 3),
-          { name: "Prescriptions", href: "/staff/prescriptions", icon: Pill },
-          { name: "Inventory", href: "/staff/inventory", icon: FileText },
+          { name: "Pharmacy Dashboard", href: "/staff/pharmacy", icon: Pill },
           { name: "Consultations", href: "/staff/consultations", icon: Users },
           ...baseNav.slice(3),
         ]

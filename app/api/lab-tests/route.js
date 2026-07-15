@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
-import { getLabTestsByPatient, createLabTest } from "@/lib/mongodb-models"
+import { getLabTestsByPatient, getLabTestsByDoctor, createLabTest } from "@/lib/mongodb-models"
 import { verifyToken } from "@/lib/auth"
 
 export async function GET(request) {
@@ -10,8 +10,10 @@ export async function GET(request) {
     const user = verifyToken(token)
 
     let tests = []
-    if (user.role === "patient") {
+    if (user.role === "patient" || user.userType === "patient") {
       tests = await getLabTestsByPatient(user.userId)
+    } else if (user.role === "doctor" || user.userType === "doctor") {
+      tests = await getLabTestsByDoctor(user.name) // Use the doctor's name to filter "orderedBy"
     }
 
     return NextResponse.json(tests)

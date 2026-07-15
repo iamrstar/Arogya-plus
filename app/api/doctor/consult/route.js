@@ -56,29 +56,32 @@ export async function POST(req) {
                 date: new Date().toISOString(),
                 instructions: p.instructions
             })))
+        }
 
-            // Add tests
-            const laboratoryTasks = (tests || []).map(t => {
-                const diagInfo = store.masterDiagnostics?.find(d => d.name === t)
-                return {
-                    _id: `LAB-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-                    appointmentId,
-                    patientId,
-                    patientName: patientName,
-                    testName: t,
-                    category: diagInfo?.category || "General",
-                    orderedBy: store.users.find(u => u._id === doctorId)?.name || "Primary Clinician",
-                    orderDate: new Date().toISOString().split('T')[0],
-                    status: "Pending",
-                    result: null,
-                    resultDate: null,
-                    notes: null
-                }
-            })
+        // Add tests to global store regardless of user existence
+        const laboratoryTasks = (tests || []).map(t => {
+            const diagInfo = store.masterDiagnostics?.find(d => d.name === t)
+            return {
+                _id: `LAB-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+                appointmentId,
+                patientId,
+                patientName: patientName,
+                testName: t,
+                category: diagInfo?.category || "General",
+                orderedBy: store.users.find(u => u._id === doctorId)?.name || "Primary Clinician",
+                orderDate: new Date().toISOString().split('T')[0],
+                status: "Pending",
+                result: null,
+                resultDate: null,
+                notes: null
+            }
+        })
 
-            if (!store.labTests) store.labTests = []
-            store.labTests.push(...laboratoryTasks)
+        if (!store.labTests) store.labTests = []
+        store.labTests.push(...laboratoryTasks)
 
+        if (patientUserIndex !== -1) {
+            const user = store.users[patientUserIndex]
             user.testLog.push(...laboratoryTasks.map(t => ({
                 appointmentId: t.appointmentId,
                 name: t.testName,

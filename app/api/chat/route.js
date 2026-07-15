@@ -45,11 +45,11 @@ export async function POST(req) {
 
         // Diagnostic Patterns
         const diagnostics = {
-            Cardiology: ["chest pain", "heart", "dil", "buke batha", "seene mein dard", "cardiac"],
-            Neurology: ["headache", "brain", "sir dard", "matha betha", "migraine", "nerve"],
-            Orthopedics: ["bone", "fracture", "joint pain", "addi", "haad", "back pain", "pither betha"],
-            Dermatology: ["skin", "rash", "khujli", "itckiness", "chorakati", "acne"],
-            Pediatrics: ["child", "baby", "baccha", "sisu", "infant"]
+            Cardiology: ["chest pain", "heart", "dil", "buke batha", "seene mein dard", "seene me dard", "cardiac", "chest", "sine"],
+            Neurology: ["headache", "head pain", "brain", "sir dard", "sir me dard", "sir me dar", "sir", "matha", "matha betha", "matha te", "migraine", "nerve", "head", "dizzy", "chakkar"],
+            Orthopedics: ["bone", "fracture", "joint pain", "addi", "haad", "back pain", "pither betha", "ortho", "dard"],
+            Dermatology: ["skin", "rash", "khujli", "itchiness", "chorakati", "acne", "pimples"],
+            Pediatrics: ["child", "baby", "baccha", "sisu", "infant", "kid"]
         }
 
         let reply = ""

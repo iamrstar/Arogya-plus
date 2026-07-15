@@ -27,14 +27,19 @@ export default function PatientPayments() {
   }, [token])
 
   const fetchPayments = async () => {
-    setPayments([
-      { id: "PAY001", invoiceNo: "INV-2026-001", description: "Cardiology Consultation — Dr. Rajesh Kumar", amount: 1500, date: "2026-03-10", dueDate: "2026-03-15", status: "Paid", method: "Counter Payment" },
-      { id: "PAY002", invoiceNo: "INV-2026-002", description: "Lab Tests — CBC, Lipid Profile, HbA1c", amount: 2800, date: "2026-03-12", dueDate: "2026-03-20", status: "Pending", method: null },
-      { id: "PAY003", invoiceNo: "INV-2026-003", description: "Neurology Follow-up — Dr. Priya Sharma", amount: 1200, date: "2026-03-15", dueDate: "2026-03-22", status: "Pending", method: null },
-      { id: "PAY004", invoiceNo: "INV-2026-004", description: "MRI Brain — Diagnostic Center", amount: 8500, date: "2026-03-16", dueDate: "2026-03-18", status: "Overdue", method: null },
-      { id: "PAY005", invoiceNo: "INV-2026-005", description: "Pharmacy — Medicines (5 items)", amount: 650, date: "2026-03-18", dueDate: "2026-03-25", status: "Pending", method: null },
-    ])
-    setLoading(false)
+    try {
+      // In a fully integrated backend, this would fetch from:
+      // const response = await fetch('/api/payments/history', { ... })
+      // const data = await response.json()
+      
+      // For now, since the user is newly registered, they have no payments yet:
+      setPayments([])
+    } catch (error) {
+      console.error("Failed to fetch payments:", error)
+      setPayments([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handlePayOnline = (payment) => {

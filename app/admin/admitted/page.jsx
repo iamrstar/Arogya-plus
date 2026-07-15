@@ -12,6 +12,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { UserCheck, Search, LogOut as Discharge, Loader2, AlertCircle, Heart, Activity, Pill, Plus, Check, ChevronsUpDown, Scissors, IndianRupee, Trash2, ShoppingCart } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function AdmittedPatients() {
     const [patients, setPatients] = useState([])

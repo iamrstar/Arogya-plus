@@ -109,6 +109,7 @@ export async function POST(req) {
 
             store.admittedPatients.push({
                 _id: admissionId,
+                originalId: patientId,
                 patientId,
                 name: patientName,
                 age: patientData?.age || "N/A",
